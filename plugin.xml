@@ -1,0 +1,52 @@
+<root>
+  <name>Chamado em Cascata</name>
+  <key>ticketcascade</key>
+  <state>stable</state>
+  <description>
+    <short>
+        <en>The Ticket Cascade plugin allows you to create a cascading ticket workflow</en>
+        <pt>O plugin 'Chamado em Cascata' (Ticket Cascade) permite criar um fluxo de trabalho de chamados em cascata</pt>
+    </short>
+    <long>
+      <pt>
+        O plugin 'Chamado em Cascata' (Ticket Cascade) permite criar um fluxo de trabalho de chamados em cascata definindo uma categoria como gatilho do fluxo e
+        permitido a seleção de sub-chamados modelos a serem criados no fluxo de chamados, fazendo um sistema complexo de fluxo de chamados que percorrem
+        várias etapas até ser resolvido propriamente dito.
+      </pt>
+      <en>
+        The Ticket Cascade plugin allows you to create a cascading ticket workflow. It defines a category as a trigger for the flow and allows you to select
+        sub-ticket models to be created in the flow, resulting in a complex ticket flow that traverses several stages until it is resolved.
+      </en>
+    </long>
+  </description>
+  <homepage>https://github.com/plss-github/ticketcascade</homepage>
+  <download>https://github.com/plss-github/ticketcascade/releases</download>
+  <issues>https://github.com/plss-github/ticketcascade/issues</issues>
+  <readme>https://github.com/plss-github/ticketcascade</readme>
+  <authors>
+    <author>Ampris</author>
+    <author>Matheus Schmidt</author>
+  </authors>
+  <versions>
+    <version>
+        <num>1.0.0</num>
+        <compatibility>~10.0.0</compatibility>
+        <download_url>https://github.com/plss-github/ticketcascade/releases/download/1.0.0/ticketcascade.tar.gz</download_url>
+    </version>
+  </versions>
+  <langs>
+    <lang>en_GB</lang>
+    <lang>en_US</lang>
+    <lang>pt_BR</lang>
+    <lang>pt_PT</lang>
+  </langs>
+  <license>GPL v2+</license>
+  <tags>
+    <en>
+        <tag>ticket cascade</tag>
+    </en>
+    <pt>
+        <tag>chamado em cascata</tag>
+    </pt>
+  </tags>
+</root>
