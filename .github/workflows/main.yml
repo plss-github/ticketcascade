@@ -23,7 +23,7 @@ jobs:
       - name: Definir versão da release
         id: vars
         run: |
-          VERSION=$(\S*'PLUGIN_\w*_VERSION'\,\s*'\K[^']+)
+          VERSION=$(grep -oP "\S*'PLUGIN_\w*_VERSION'\,\s*'\K[^']+" setup.php)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Criar tar.gz do repositório (ignorando .github/.git)
