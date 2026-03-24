@@ -42,7 +42,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.vars.outputs.version }}
-          name: "GLPI Plugin ${{ env.PLUGIN_NAME }} ${{ steps.vars.outputs.version }}"
+          name: "${{ steps.vars.outputs.version }}"
           files: |
             ${{ env.PLUGIN_NAME }}.tar.gz
         env:
