@@ -14,17 +14,21 @@ class PluginTicketcascadeBehavior extends CommonDBTM {
   static function installBaseData(Migration $migration, $version) {
     global $DB;
 
+    $default_charset   = DBConnection::getDefaultCharset();
+    $default_collation = DBConnection::getDefaultCollation();
+    $default_key_sign  = DBConnection::getDefaultPrimaryKeySignOption();
+
     if (!$DB->tableExists(self::getTable())) {
       $query = "CREATE TABLE `" . self::getTable() . "` (
-        `id` int(11) NOT NULL AUTO_INCREMENT,
-        `plugin_ticketcascade_rules_id` int(11) NOT NULL DEFAULT '0',
-        `ticketmodels_id` int(11) NOT NULL DEFAULT '0',
-        `parent_behavior_id` int(11) NOT NULL DEFAULT '0',
+        `id` int {$default_key_sign} NOT NULL AUTO_INCREMENT,
+        `plugin_ticketcascade_rules_id` int {$default_key_sign} NOT NULL DEFAULT '0',
+        `ticketmodels_id` int {$default_key_sign} NOT NULL DEFAULT '0',
+        `parent_behavior_id` int {$default_key_sign} NOT NULL DEFAULT '0',
         PRIMARY KEY (`id`),
         KEY `plugin_ticketcascade_rules_id` (`plugin_ticketcascade_rules_id`),
         KEY `ticketmodels_id` (`ticketmodels_id`),
         KEY `parent_behavior_id` (`parent_behavior_id`)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+      ) ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation};";
       $DB->doQuery($query);
     } else {
       if (!$DB->fieldExists(self::getTable(), 'parent_behavior_id')) {
@@ -34,16 +38,16 @@ class PluginTicketcascadeBehavior extends CommonDBTM {
 
     if (!$DB->tableExists('glpi_plugin_ticketcascade_ticketbehaviors')) {
       $query2 = "CREATE TABLE `glpi_plugin_ticketcascade_ticketbehaviors` (
-        `id` int(11) NOT NULL AUTO_INCREMENT,
-        `tickets_id` int(11) NOT NULL DEFAULT '0',
-        `plugin_ticketcascade_behaviors_id` int(11) NOT NULL DEFAULT '0',
-        `root_tickets_id` int(11) NOT NULL DEFAULT '0',
-        `plugin_ticketcascade_rules_id` int(11) NOT NULL DEFAULT '0',
+        `id` int {$default_key_sign} NOT NULL AUTO_INCREMENT,
+        `tickets_id` int {$default_key_sign} NOT NULL DEFAULT '0',
+        `plugin_ticketcascade_behaviors_id` int {$default_key_sign} NOT NULL DEFAULT '0',
+        `root_tickets_id` int {$default_key_sign} NOT NULL DEFAULT '0',
+        `plugin_ticketcascade_rules_id` int {$default_key_sign} NOT NULL DEFAULT '0',
         PRIMARY KEY (`id`),
         KEY `tickets_id` (`tickets_id`),
         KEY `behaviors_id` (`plugin_ticketcascade_behaviors_id`),
         KEY `root_tickets_id` (`root_tickets_id`)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+      ) ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation};";
       $DB->doQuery($query2);
     }
   }
@@ -70,19 +74,19 @@ class PluginTicketcascadeBehavior extends CommonDBTM {
     );
   }
 
-  static function canCreate() {
+  static function canCreate(): bool {
     return Session::haveRight(self::$rightname, UPDATE);
   }
 
-  static function canView() {
+  static function canView(): bool {
     return Session::haveRight(self::$rightname, READ);
   }
 
-  static function canUpdate() {
+  static function canUpdate(): bool {
     return Session::haveRight(self::$rightname, UPDATE);
   }
 
-  static function canPurge() {
+  static function canPurge(): bool {
     return Session::haveRight(self::$rightname, UPDATE);
   }
 

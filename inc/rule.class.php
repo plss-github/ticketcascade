@@ -18,18 +18,22 @@ class PluginTicketcascadeRule extends CommonDBTM {
   static function installBaseData(Migration $migration, $version) {
     global $DB;
 
+    $default_charset   = DBConnection::getDefaultCharset();
+    $default_collation = DBConnection::getDefaultCollation();
+    $default_key_sign  = DBConnection::getDefaultPrimaryKeySignOption();
+
     if (!$DB->tableExists(self::getTable())) {
       $query = "CREATE TABLE `" . self::getTable() . "` (
-        `id` int(11) NOT NULL AUTO_INCREMENT,
-        `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+        `id` int {$default_key_sign} NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) COLLATE {$default_collation} NOT NULL,
         `is_active` tinyint(1) NOT NULL DEFAULT '0',
-        `itilcategories_id` int(11) NOT NULL DEFAULT '0',
+        `itilcategories_id` int {$default_key_sign} NOT NULL DEFAULT '0',
         `date_mod` timestamp NULL DEFAULT NULL,
         `date_creation` timestamp NULL DEFAULT NULL,
         PRIMARY KEY (`id`),
         KEY `is_active` (`is_active`),
         KEY `itilcategories_id` (`itilcategories_id`)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+      ) ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation};";
       $DB->doQuery($query);
     }
   }
@@ -56,19 +60,19 @@ class PluginTicketcascadeRule extends CommonDBTM {
     );
   }
 
-  static function canCreate() {
+  static function canCreate(): bool {
     return Session::haveRight(self::$rightname, UPDATE);
   }
 
-  static function canView() {
+  static function canView(): bool {
     return Session::haveRight(self::$rightname, READ);
   }
 
-  static function canUpdate() {
+  static function canUpdate(): bool {
     return Session::haveRight(self::$rightname, UPDATE);
   }
 
-  static function canPurge() {
+  static function canPurge(): bool {
     return Session::haveRight(self::$rightname, UPDATE);
   }
 
