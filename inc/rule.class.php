@@ -27,6 +27,7 @@ class PluginTicketcascadeRule extends CommonDBTM {
         `id` int {$default_key_sign} NOT NULL AUTO_INCREMENT,
         `name` varchar(255) COLLATE {$default_collation} NOT NULL,
         `is_active` tinyint(1) NOT NULL DEFAULT '0',
+        `auto_close` tinyint(1) NOT NULL DEFAULT '1',
         `itilcategories_id` int {$default_key_sign} NOT NULL DEFAULT '0',
         `date_mod` timestamp NULL DEFAULT NULL,
         `date_creation` timestamp NULL DEFAULT NULL,
@@ -35,6 +36,10 @@ class PluginTicketcascadeRule extends CommonDBTM {
         KEY `itilcategories_id` (`itilcategories_id`)
       ) ENGINE=InnoDB DEFAULT CHARSET={$default_charset} COLLATE={$default_collation};";
       $DB->doQuery($query);
+    } else {
+      if (!$DB->fieldExists(self::getTable(), 'auto_close')) {
+        $migration->addField(self::getTable(), 'auto_close', "tinyint(1) NOT NULL DEFAULT '1'");
+      }
     }
   }
 
@@ -111,6 +116,15 @@ class PluginTicketcascadeRule extends CommonDBTM {
       'massiveaction' => true,
     ];
 
+    $tab[] = [
+      'id' => '4',
+      'table' => $this->getTable(),
+      'field' => 'auto_close',
+      'name' => __('Fechar automaticamente', 'ticketcascade'),
+      'datatype' => 'bool',
+      'massiveaction' => true,
+    ];
+
     return $tab;
   }
 
@@ -134,7 +148,10 @@ class PluginTicketcascadeRule extends CommonDBTM {
     echo "<td>";
     ITILCategory::dropdown(['value' => $this->fields['itilcategories_id'], 'name' => 'itilcategories_id']);
     echo "</td>";
-    echo "<td colspan='2'></td>";
+    echo "<td>" . __('Fechar automaticamente', 'ticketcascade') . "</td>";
+    echo "<td>";
+    Dropdown::showYesNo('auto_close', $this->fields['auto_close'] ?? 1);
+    echo "</td>";
     echo "</tr>";
 
     $this->showFormButtons($options);

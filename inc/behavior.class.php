@@ -287,11 +287,12 @@ class PluginTicketcascadeBehavior extends CommonDBTM {
 
     foreach ($rule_iterator as $rule_data) {
       $rule_id = $rule_data['id'];
-      self::generateChildTickets($ticket_id, $rule_id, 0, $ticket->fields['entities_id'], $ticket_id);
+      $recursive = !empty($rule_data['auto_close']);
+      self::generateChildTickets($ticket_id, $rule_id, 0, $ticket->fields['entities_id'], $ticket_id, $recursive);
     }
   }
 
-  static function generateChildTickets($parent_ticket_id, $rule_id, $parent_behavior_id, $entities_id, $root_ticket_id) {
+  static function generateChildTickets($parent_ticket_id, $rule_id, $parent_behavior_id, $entities_id, $root_ticket_id, $recursive = false) {
     global $DB;
 
     $behavior_iterator = $DB->request([
@@ -340,8 +341,8 @@ class PluginTicketcascadeBehavior extends CommonDBTM {
       if ($child_id) {
         $ticketlink = new Ticket_Ticket();
         $ticketlink->add([
-          'tickets_id_1' => $parent_ticket_id,
-          'tickets_id_2' => $child_id,
+          'tickets_id_1' => $child_id,
+          'tickets_id_2' => $parent_ticket_id,
           'link' => Ticket_Ticket::SON_OF
         ]);
 
@@ -359,6 +360,10 @@ class PluginTicketcascadeBehavior extends CommonDBTM {
           'content' => sprintf(__('Chamado filho de ID #%d gerado com sucesso pela regra de cascata.', 'ticketcascade'), $child_id),
           'is_private' => 1
         ]);
+
+        if ($recursive) {
+          self::generateChildTickets($child_id, $rule_id, $behavior_id, $entities_id, $root_ticket_id, true);
+        }
       }
     }
   }
@@ -383,7 +388,11 @@ class PluginTicketcascadeBehavior extends CommonDBTM {
 
           $rule = new PluginTicketcascadeRule();
           if ($rule->getFromDB($rule_id) && $rule->fields['is_active']) {
-            self::generateChildTickets($ticket_id, $rule_id, $behavior_id, $ticket->fields['entities_id'], $root_id);
+            if (!empty($rule->fields['auto_close'])) {
+              self::autoCloseAncestors($ticket_id);
+            } else {
+              self::generateChildTickets($ticket_id, $rule_id, $behavior_id, $ticket->fields['entities_id'], $root_id);
+            }
           }
         }
       }
@@ -399,13 +408,13 @@ class PluginTicketcascadeBehavior extends CommonDBTM {
       'INNER JOIN' => [
         'glpi_tickets AS t2' => [
           'ON' => [
-            'glpi_tickets_tickets' => 'tickets_id_2',
+            'glpi_tickets_tickets' => 'tickets_id_1',
             't2' => 'id'
           ]
         ]
       ],
       'WHERE' => [
-        'glpi_tickets_tickets.tickets_id_1' => $ticket_id,
+        'glpi_tickets_tickets.tickets_id_2' => $ticket_id,
         'glpi_tickets_tickets.link' => Ticket_Ticket::SON_OF
       ]
     ]);
@@ -418,17 +427,13 @@ class PluginTicketcascadeBehavior extends CommonDBTM {
           'WHERE' => ['tickets_id' => $child_id]
         ]);
 
-        $is_active_cascade = false;
         foreach ($behavior_iterator as $b_data) {
           $rule = new PluginTicketcascadeRule();
-          if ($rule->getFromDB($b_data['plugin_ticketcascade_rules_id']) && $rule->fields['is_active']) {
-            $is_active_cascade = true;
-            break;
+          if ($rule->getFromDB($b_data['plugin_ticketcascade_rules_id'])
+              && $rule->fields['is_active']
+              && empty($rule->fields['auto_close'])) {
+            return true;
           }
-        }
-
-        if ($is_active_cascade) {
-          return true;
         }
       }
       if (self::hasUnresolvedDescendants($child_id)) {
@@ -437,6 +442,119 @@ class PluginTicketcascadeBehavior extends CommonDBTM {
     }
 
     return false;
+  }
+
+  static function allDirectChildrenClosed($parent_ticket_id) {
+    global $DB;
+
+    $iterator = $DB->request([
+      'SELECT' => ['t2.status'],
+      'FROM' => 'glpi_tickets_tickets',
+      'INNER JOIN' => [
+        'glpi_tickets AS t2' => [
+          'ON' => [
+            'glpi_tickets_tickets' => 'tickets_id_1',
+            't2' => 'id'
+          ]
+        ]
+      ],
+      'WHERE' => [
+        'glpi_tickets_tickets.tickets_id_2' => $parent_ticket_id,
+        'glpi_tickets_tickets.link' => Ticket_Ticket::SON_OF
+      ]
+    ]);
+
+    if (count($iterator) === 0) {
+      return true;
+    }
+
+    foreach ($iterator as $child) {
+      if (!in_array($child['status'], [Ticket::SOLVED, Ticket::CLOSED])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  static function autoCloseAncestors($ticket_id) {
+    global $DB;
+
+    // tickets_id_1 = filho, tickets_id_2 = pai
+    $parent_iterator = $DB->request([
+      'SELECT' => ['t.id', 't.status'],
+      'FROM' => 'glpi_tickets_tickets',
+      'INNER JOIN' => [
+        'glpi_tickets AS t' => [
+          'ON' => [
+            'glpi_tickets_tickets' => 'tickets_id_2',
+            't' => 'id'
+          ]
+        ]
+      ],
+      'WHERE' => [
+        'glpi_tickets_tickets.tickets_id_1' => $ticket_id,
+        'glpi_tickets_tickets.link' => Ticket_Ticket::SON_OF
+      ]
+    ]);
+
+    $parent_row = $parent_iterator->current();
+    if (!$parent_row) {
+      return;
+    }
+
+    $parent_id = $parent_row['id'];
+
+    $children_iterator = $DB->request([
+      'SELECT' => ['t2.id', 't2.status'],
+      'FROM' => 'glpi_tickets_tickets',
+      'INNER JOIN' => [
+        'glpi_tickets AS t2' => [
+          'ON' => [
+            'glpi_tickets_tickets' => 'tickets_id_1',
+            't2' => 'id'
+          ]
+        ]
+      ],
+      'WHERE' => [
+        'glpi_tickets_tickets.tickets_id_2' => $parent_id,
+        'glpi_tickets_tickets.link' => Ticket_Ticket::SON_OF
+      ]
+    ]);
+
+    $child_ids = [];
+    foreach ($children_iterator as $child) {
+      if (!in_array($child['status'], [Ticket::SOLVED, Ticket::CLOSED])) {
+        return;
+      }
+      $child_ids[] = $child['id'];
+    }
+
+    if (empty($child_ids)) {
+      return;
+    }
+
+    if (in_array($parent_row['status'], [Ticket::SOLVED, Ticket::CLOSED])) {
+      return;
+    }
+
+    $links = array_map(function($cid) {
+      $url = Ticket::getFormURLWithID($cid);
+      return '<a href="' . htmlspecialchars($url) . '">#' . $cid . '</a>';
+    }, $child_ids);
+
+    $content = sprintf(
+      __('Chamado fechado automaticamente pela regra de cascata. Solução realizada no(s) chamado(s) filho(s): %s.', 'ticketcascade'),
+      implode(', ', $links)
+    );
+
+    $solution = new ITILSolution();
+    $solution->add([
+      'itemtype' => 'Ticket',
+      'items_id' => $parent_id,
+      'content'  => $content,
+      'solutiontypes_id' => 0,
+    ]);
   }
 
   static function preTicketUpdate($ticket) {
